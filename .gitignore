@@ -1,3 +1,5 @@
 .vscode
+.cursor
+.github
 build
 doc

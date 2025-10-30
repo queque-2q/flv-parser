@@ -13,12 +13,12 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 # 使用 file(GLOB) 收集源文件
-file(GLOB MODEL_SOURCES "model/*.h" "model/*.cpp")
-file(GLOB VIEW_SOURCES "view/*.h" "view/*.cpp" "view/*.ui")
+file(GLOB MODEL_SOURCES "src/model/*.h" "src/model/*.cpp")
+file(GLOB VIEW_SOURCES "src/view/*.h" "src/view/*.cpp" "src/view/*.ui")
 
 # 添加所有源文件
 set(PROJECT_SOURCES
-    main.cpp
+    src/main.cpp
     ${MODEL_SOURCES}
     ${VIEW_SOURCES}
 )
@@ -47,8 +47,8 @@ else()
 endif()
 
 target_include_directories(flv-parser PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/model
-    ${CMAKE_CURRENT_SOURCE_DIR}/view
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/model
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/view
 )
 
 target_link_libraries(flv-parser PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

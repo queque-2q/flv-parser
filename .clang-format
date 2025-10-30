@@ -1,0 +1,36 @@
+# 基于Visual Studio常用风格（继承Microsoft预设）
+BasedOnStyle: Microsoft
+Language: Cpp
+Standard: c++17
+
+# 行长度限制为120
+ColumnLimit: 120
+
+# 缩进与空格规则
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# 大括号风格（Visual Studio默认Attach风格）
+BreakBeforeBraces: Attach
+
+# 指针与引用对齐（左对齐）
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# 控制语句空格规则
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: true
+
+# 函数参数换行规则
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+
+# 注释相关配置
+ReflowComments: true
+MaxEmptyLinesToKeep: 1
+
+# 其他增强可读性配置
+# AlignConsecutiveAssignments: true
+AlignTrailingComments: true
