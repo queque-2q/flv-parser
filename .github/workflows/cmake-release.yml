@@ -17,19 +17,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt (MinGW, Qt 6.8.x)
-        # Install a Qt 6.8 MinGW build so CMake can find Qt when building with MinGW on the runner.
+      - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          # match the project's Qt 6.8.x series used locally
-          version: '6.8.0'
+          version: '6.7.2'
           host: 'windows'
           target: 'desktop'
-          # Request the MinGW (mingw-w64) archive so toolchain matches typical local dev setup
           arch: 'win64_mingw'
-          # keep install minimal: qtbase is sufficient for a Qt Widgets CMake build
           modules: 'qtbase'
-          # put Qt under the workspace (action will set PATH when set-env=true)
           dir: '${{ github.workspace }}/qt'
           set-env: 'true'
 
