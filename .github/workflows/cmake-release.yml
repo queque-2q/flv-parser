@@ -1,0 +1,49 @@
+name: CMake Release Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # 使用与本地环境更接近的 Windows runner
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt (MinGW, Qt 6.8.x)
+        # Install a Qt 6.8 MinGW build so CMake can find Qt when building with MinGW on the runner.
+        uses: jurplel/install-qt-action@v4
+        with:
+          # match the project's Qt 6.8.x series used locally
+          version: '6.8.0'
+          host: 'windows'
+          target: 'desktop'
+          # Request the MinGW (mingw-w64) archive so toolchain matches typical local dev setup
+          arch: 'win64_mingw'
+          # keep install minimal: qtbase is sufficient for a Qt Widgets CMake build
+          modules: 'qtbase'
+          # put Qt under the workspace (action will set PATH when set-env=true)
+          dir: '${{ github.workspace }}/qt'
+          set-env: 'true'
+
+      - name: Configure CMake (Release)
+        run: cmake -B ${{ github.workspace }}/build -S ${{ github.workspace }} -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build (Release)
+        run: cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }} -- -v
+
+      - name: Upload build artifacts (optional)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flv-parser-release
+          path: |
+            build/**/flv-parser.exe
+            build/**/bin/**/flv-parser.exe
