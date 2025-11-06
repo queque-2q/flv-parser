@@ -2,3 +2,7 @@
 .cursor
 build
 doc
+
+# Qt Creator/IDE user-specific files
+CMakeLists.txt.user*
+*.user
