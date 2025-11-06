@@ -1,0 +1,3 @@
+// Application icon resources
+IDI_APP_ICON ICON "app.ico"
+1           ICON "app.ico"

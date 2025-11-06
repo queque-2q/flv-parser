@@ -2,7 +2,7 @@
 
 一个基于 Qt 的 FLV 文件解析工具，用于查看和分析 FLV 视频文件的内部结构。
 
-![FLV解析器截图](screenshots/v1.0.1.png)
+![FLV解析器截图](res/screenshots/v1.0.1.png)
 
 ## 功能特性
 
@@ -19,7 +19,7 @@
 
 ### 系统要求
 
-- 支持 Windows、macOS 和 Linux 系统
+- 支持 Windows系统，macOS 和 Linux 未测试
 - Qt 5.15 或更高版本
 - CMake 3.16 或更高版本
 - C++17 兼容的编译器
@@ -27,25 +27,29 @@
 ### 编译步骤
 
 1. 克隆仓库：
-   ```
+
+   ```bash
    git clone https://github.com/yourusername/flv-parser.git
    cd flv-parser
    ```
 
 2. 创建构建目录：
-   ```
+
+   ```bash
    mkdir build
    cd build
    ```
 
 3. 配置并编译：
-   ```
+
+   ```bash
    cmake ..
    cmake --build .
    ```
 
 4. 运行程序：
-   ```
+
+   ```bash
    ./flv-parser
    ```
 
@@ -56,4 +60,4 @@
 
 ## 许可证
 
-本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
+本项目采用 MIT 许可证发布。详情请参阅 [LICENSE](LICENSE) 文件。

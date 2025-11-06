@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 FLV Parser Contributors
+//
+// SPDX-License-Identifier: MIT
+
 #include "mainwindow.h"
 #include "DeleteStrategy.h"
 #include "Log.h"
@@ -24,7 +28,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     setupContextMenu();
 
     // 全局统一选中颜色：设置应用级调色板和样式，使所有视图元素在选中时使用相同的强蓝色并显示白色文字
-    // 颜色调暗一点，避免过于刺眼
     QColor strongBlue(20, 100, 200); // 较暗的蓝色
     QPalette appPal = qApp->palette();
     appPal.setColor(QPalette::Highlight, strongBlue);

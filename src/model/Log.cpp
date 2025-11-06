@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 FLV Parser Contributors
+//
+// SPDX-License-Identifier: MIT
+
 #include "Log.h"
 #include <QFile>
 #include <QMutex>

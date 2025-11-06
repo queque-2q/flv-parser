@@ -111,7 +111,7 @@
            <bool>true</bool>
           </property>
           <property name="selectionMode">
-           <enum>QAbstractItemView::SelectionMode::MultiSelection</enum>
+           <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
           </property>
           <attribute name="horizontalHeaderMinimumSectionSize">
            <number>24</number>
