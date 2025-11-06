@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 FLV Parser Contributors
+//
+// SPDX-License-Identifier: MIT
+
 #include <windows.h>
 #ifdef byte
 #undef byte // 强制移除 byte 类型别名

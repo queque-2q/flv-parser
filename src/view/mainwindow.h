@@ -1,4 +1,8 @@
-﻿#pragma once
+﻿// SPDX-FileCopyrightText: 2025 FLV Parser Contributors
+//
+// SPDX-License-Identifier: MIT
+
+#pragma once
 
 #include "modelwidget.h"
 #include <QAction>
