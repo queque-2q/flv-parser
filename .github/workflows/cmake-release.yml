@@ -1,13 +1,27 @@
 name: CMake Release Build
 
 on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "CMake build type"
+        required: false
+        default: "Release"
+        type: choice
+        options: [Release, Debug, RelWithDebInfo, MinSizeRel]
+      qt_version:
+        description: "Qt version"
+        required: false
+        default: "6.6.2"
+        type: string
+  # Create release automatically when pushing a version tag (e.g. v1.2.3)
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    tags:
+      - 'v*'
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: ${{ github.event.inputs.build_type || 'Release' }}
 
 jobs:
   build:
@@ -20,7 +34,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.6.2'
+          version: ${{ github.event.inputs.qt_version || '6.6.2' }}
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
@@ -38,11 +52,32 @@ jobs:
       - name: Build (Release)
         run: cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }} -- -v
 
+      - name: Install NSIS (for CPack)
+        run: choco install nsis -y
+
+      - name: Package (CPack NSIS)
+        run: |
+          cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }} --target install -- -v || echo "(optional install target)"
+          pushd ${{ github.workspace }}/build
+          cpack -G NSIS -C ${{ env.BUILD_TYPE }} -B dist
+          popd
+
+      - name: List dist
+        run: dir build/dist
+
       - name: Upload build artifacts (optional)
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: flv-parser-release
+          name: flv-parser-build
           path: |
-            build/**/flv-parser.exe
-            build/**/bin/**/flv-parser.exe
+            build/dist/*.exe
+
+      - name: Create Release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/dist/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
