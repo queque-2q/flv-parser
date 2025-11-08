@@ -1,6 +1,7 @@
 .vscode
 .cursor
 build
+misc
 doc
 
 # Qt Creator/IDE user-specific files
