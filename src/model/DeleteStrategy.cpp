@@ -13,14 +13,14 @@
 #include <QFile>
 #include <QMessageBox>
 
-bool StreamDeleteStrategy::deleteFrame(const QString& filePath,
+bool StreamDeleteStrategy::deleteTag(const QString& filePath,
                                        int rowIndex,
-                                       const vector<shared_ptr<FLVFrame>>& frameList) {
+                                       const vector<unique_ptr<FLVTag>>& tagList) {
     QString tempFileName = filePath + "_temp";
 
     try {
         // 复制未删除的帧到临时文件
-        if (!copyFramesToTemp(filePath, tempFileName, rowIndex, frameList)) {
+        if (!copyTagsToTemp(filePath, tempFileName, rowIndex, tagList)) {
             throw QString("复制帧数据失败");
         }
 
@@ -35,18 +35,21 @@ bool StreamDeleteStrategy::deleteFrame(const QString& filePath,
             throw QString("重命名临时文件失败");
         }
 
+        qCInfo(runLog) << "[flv-editing] event[tag deleted successfully]";
+        QMessageBox::information(nullptr, "成功", "帧已成功删除");
         return true;
     } catch (const QString& error) {
+        qCInfo(runLog) << "[flv-editing] event[tag deleted failed]";
         QMessageBox::warning(nullptr, "错误", "删除帧失败：" + error);
         QFile::remove(tempFileName);
         return false;
     }
 }
 
-bool StreamDeleteStrategy::copyFramesToTemp(const QString& sourcePath,
+bool StreamDeleteStrategy::copyTagsToTemp(const QString& sourcePath,
                                             const QString& tempPath,
                                             int rowIndex,
-                                            const vector<shared_ptr<FLVFrame>>& frameList) {
+                                            const vector<unique_ptr<FLVTag>>& tagList) {
     QFile sourceFile(sourcePath);
     QFile tempFile(tempPath);
 
@@ -62,18 +65,14 @@ bool StreamDeleteStrategy::copyFramesToTemp(const QString& sourcePath,
     tempFile.write(header);
 
     // 复制未删除的帧
-    for (size_t i = 0; i < frameList.size(); ++i) {
+    for (size_t i = 0; i < tagList.size(); ++i) {
         if (i != rowIndex) {
-            auto frame = frameList[i].get();
-            sourceFile.seek(frame->m_offset);
-            QByteArray frameData(frame->m_size, 0);
-            size_t readSize = sourceFile.read(frameData.data(), frame->m_size);
+            auto tag = tagList[i].get();
+            sourceFile.seek(tag->m_offset);
+            QByteArray tagData(tag->m_size, 0);
+            size_t readSize = sourceFile.read(tagData.data(), tag->m_size);
 
-            tempFile.write(frameData, readSize);
-
-            if (readSize != frame->m_size) {
-                qCDebug(runLog) << "文件结束";
-            }
+            tempFile.write(tagData, readSize);
         }
     }
 
@@ -82,15 +81,24 @@ bool StreamDeleteStrategy::copyFramesToTemp(const QString& sourcePath,
     return true;
 }
 
-bool MMapDeleteStrategy::deleteFrame(const QString& filePath,
+bool MMapDeleteStrategy::deleteTag(const QString& filePath,
                                      int rowIndex,
-                                     const vector<shared_ptr<FLVFrame>>& frameList) {
-    return deleteFrameInMemory(filePath, rowIndex, frameList);
+                                     const vector<unique_ptr<FLVTag>>& tagList) {
+
+    bool result = deleteTagInMemory(filePath, rowIndex, tagList);
+    if (result) {
+        qCInfo(runLog) << "[flv-editing] event[tag deleted successfully]";
+        QMessageBox::information(nullptr, "成功", "帧已成功删除");
+    } else {
+        qCInfo(runLog) << "[flv-editing] event[tag deleted failed]";
+        QMessageBox::warning(nullptr, "错误", "删除帧失败");
+    }
+    return result;
 }
 
-bool MMapDeleteStrategy::deleteFrameInMemory(const QString& filePath,
+bool MMapDeleteStrategy::deleteTagInMemory(const QString& filePath,
                                              int rowIndex,
-                                             const vector<shared_ptr<FLVFrame>>& frameList) {
+                                             const vector<unique_ptr<FLVTag>>& tagList) {
     HANDLE hFile = CreateFileW((LPCWSTR) filePath.utf16(),
                                GENERIC_READ | GENERIC_WRITE,
                                0,
@@ -118,9 +126,9 @@ bool MMapDeleteStrategy::deleteFrameInMemory(const QString& filePath,
 
     try {
         // 计算需要移动的数据大小和位置
-        auto& frames = frameList;
-        int64_t startPos = frames[rowIndex]->m_offset;
-        int64_t endPos = frames[rowIndex]->m_offset + frames[rowIndex]->m_size;
+        auto& tags = tagList;
+        int64_t startPos = tags[rowIndex]->m_offset;
+        int64_t endPos = tags[rowIndex]->m_offset + tags[rowIndex]->m_size;
         int64_t moveSize = GetFileSize(hFile, nullptr) - endPos;
 
         // 移动数据

@@ -3,7 +3,7 @@
 # ----------------------------------------
 # Project
 # ----------------------------------------
-project(flv-parser VERSION 1.0.2 LANGUAGES CXX)
+project(flv-parser VERSION 1.0.3 LANGUAGES CXX)
 
 # Qt build helpers
 set(CMAKE_AUTOUIC ON)
@@ -24,11 +24,13 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 # ----------------------------------------
 file(GLOB MODEL_SOURCES "src/model/*.h" "src/model/*.cpp")
 file(GLOB VIEW_SOURCES "src/view/*.h" "src/view/*.cpp" "src/view/*.ui")
+file(GLOB UTILS_SOURCES "src/utils/*.h" "src/utils/*.cpp")
 
 set(PROJECT_SOURCES
     src/main.cpp
     ${MODEL_SOURCES}
     ${VIEW_SOURCES}
+    ${UTILS_SOURCES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -40,6 +42,7 @@ endif()
 target_include_directories(flv-parser PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/model
     ${CMAKE_CURRENT_SOURCE_DIR}/src/view
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
 )
 
 target_link_libraries(flv-parser PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

@@ -11,39 +11,63 @@
 #include <QSize>
 #include <vector>
 
-int ModelFrameList::rowCount(const QModelIndex& parent) const {
-    return m_frameList.size();
+int ModelTagList::rowCount(const QModelIndex& parent) const {
+    return m_tagList.size() + (m_flv_header ? 1 : 0);
 }
-int ModelFrameList::columnCount(const QModelIndex& parent) const {
-    return ModelFrameList::column_size;
+int ModelTagList::columnCount(const QModelIndex& parent) const {
+    return ModelTagList::column_size;
 }
 
-QVariant ModelFrameList::data(const QModelIndex& index, int role) const {
-    if (!index.isValid() || index.row() >= m_frameList.size() || index.column() >= ModelFrameList::column_size) {
+QVariant ModelTagList::data(const QModelIndex& index, int role) const {
+    if (!index.isValid() || index.column() >= ModelTagList::column_size) {
+        return {};
+    }
+
+    int row = index.row();
+    int column = index.column();
+
+    bool is_header_row = false;
+    if (m_flv_header) {
+        if (row == 0)
+            is_header_row = true;
+        else
+            row -= 1; // 有header行时，数据行索引需要减1
+    }
+
+    if (row < 0 || row >= m_tagList.size()) {
         return {};
     }
 
     if (role == Qt::DisplayRole) {
+        if (is_header_row) {
+            switch (index.column()) {
+            case 0:
+                return QString("0x00000000");
+            case 1:
+                return QString("FLV Header");
+            case 2:
+                return QString("%1").arg(m_flv_header->m_size);
+            default:
+                return {};
+            }
+        }
+
         // 定义枚举映射
         static QMap<uint8_t, const char*> tagTypeMap = {
-            {TAG_TYPE_AUDIO, "音频"}, {TAG_TYPE_VIDEO, "视频"}, {TAG_TYPE_METADATA, "元数据"}};
+            {TAG_TYPE_AUDIO, "Audio"}, {TAG_TYPE_VIDEO, "Video"}, {TAG_TYPE_SCRIPT, "Script"}};
         // 枚举映射结束
-
-        int row = index.row();
-        int column = index.column();
 
         switch (column) {
         case 0:
-            return QString("0x%1").arg(QString::number(uint(m_frameList[row]->m_offset), 16).rightJustified(8, '0'));
+            return QString("0x%1").arg(QString::number(m_tagList[row]->m_offset, 16).rightJustified(8, '0'));
         case 1:
             return QString("%1 (%2)")
-                .arg(tagTypeMap[get<double>(m_frameList[row]->m_tag_type->value)])
-                .arg(get<double>(m_frameList[row]->m_tag_type->value));
+                .arg(tagTypeMap[get<double>(m_tagList[row]->m_tag_type->value)])
+                .arg(get<double>(m_tagList[row]->m_tag_type->value));
         case 2:
-            return QString("%1").arg(m_frameList[row]->m_size);
+            return QString("%1").arg(m_tagList[row]->m_size);
         case 3:
-            return QString("%1").arg(get<double>(m_frameList[row]->m_timestamp->value));
-        case 4:
+            return QString("%1").arg(get<double>(m_tagList[row]->m_timestamp->value), 0, 'g', 10);
         default:
             return {};
         }
@@ -64,9 +88,13 @@ QVariant ModelFrameList::data(const QModelIndex& index, int role) const {
             }
         };
 
-        int tag = static_cast<int>(get<double>(m_frameList[index.row()]->m_tag_type->value));
-        if (tag == TAG_TYPE_METADATA)
+        if (is_header_row) {
             return makeTagColor(240);
+        }
+
+        int tag = static_cast<int>(get<double>(m_tagList[row]->m_tag_type->value));
+        if (tag == TAG_TYPE_SCRIPT)
+            return makeTagColor(180);
         if (tag == TAG_TYPE_AUDIO)
             return makeTagColor(120);
         if (tag == TAG_TYPE_VIDEO)
@@ -76,150 +104,45 @@ QVariant ModelFrameList::data(const QModelIndex& index, int role) const {
     return {};
 }
 
-QVariant ModelFrameList::headerData(int section, Qt::Orientation orientation, int role) const {
+QVariant ModelTagList::headerData(int section, Qt::Orientation orientation, int role) const {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
         // 根据列索引返回相应的表头数据
-        array<const char*, ModelFrameList::column_size> header = {"偏移地址", "类型", "长度", "时间戳", "详细信息"};
-        if (section < ModelFrameList::column_size)
+        array<const char*, ModelTagList::column_size> header = {"偏移地址", "tag类型", "长度", "时间戳", "详细信息"};
+        if (section < ModelTagList::column_size)
             return QString(header[section]);
     }
     return QAbstractTableModel::headerData(section, orientation, role);
 }
 
-int ModelFrameList::readFromFile(QFile& file) {
+int ModelTagList::readFromFile(QFile& file) {
     QDataStream stream(&file);
-    vector<shared_ptr<FLVFrame>> frame_vec;
+    vector<unique_ptr<FLVTag>> tag_vec;
 
-    // 解析帧
-
-    // flv头
-    // QByteArray buffer(64, 0);
-    unsigned char buffer[64] = {0};
-    if (3 != stream.readRawData(reinterpret_cast<char*>(buffer), 3)) {
-        throw QString("文件格式错误");
+    auto flv_header = make_unique<FLVHeader>();
+    if (!flv_header->readfromStream(stream)) {
+        return 0;
     }
+    m_flv_header = std::move(flv_header);
 
-    if (0 != memcmp(buffer, "FLV", 3)) {
-        throw QString("文件格式错误");
-    }
-
-    stream.skipRawData(10);
-
-    try {
-        int64_t len = 0;
-        while (!stream.atEnd()) {
-            shared_ptr<FLVFrame> frame_info = make_shared<FLVFrame>();
-
-            frame_info->m_offset = file.pos();
-            uint8_t tag_type = 0;
-            stream >> tag_type;
-            frame_info->m_tag_type->value = (double) tag_type; // metadata,音视频
-
-            if (3 != stream.readRawData(reinterpret_cast<char*>(buffer), 3))
-                throw QString("文件结束");
-            frame_info->m_tag_size->value = (double) bigend_ctou24(buffer);
-            frame_info->m_size = get<double>(frame_info->m_tag_size->value) + 11 + 4;
-
-            if (3 != stream.readRawData(reinterpret_cast<char*>(buffer), 3))
-                throw QString("文件结束");
-            frame_info->m_timestamp->value = (double) bigend_ctou24(buffer);
-            if (1 != stream.readRawData(reinterpret_cast<char*>(buffer), 1))
-                throw QString("文件结束");
-            frame_info->m_timestamp->value =
-                get<double>(frame_info->m_timestamp->value) + (static_cast<uint32_t>(buffer[0]) << 24);
-
-            if (3 != stream.readRawData(reinterpret_cast<char*>(buffer), 3))
-                throw QString("文件结束");
-            frame_info->m_stream_id->value = (double) bigend_ctou24(buffer);
-
-            switch (static_cast<int>(get<double>(frame_info->m_tag_type->value))) {
-            case TAG_TYPE_METADATA: {
-                // 读取metadata
-                frame_info->metadata_info = make_unique<DataFrameInfo>(frame_info.get());
-                // 使用AMF解析函数解析元数据
-                frame_info->metadata_info->ReadFromStream(stream);
-            } break;
-            case TAG_TYPE_AUDIO: {
-                frame_info->a_info = make_unique<AudioFrameInfo>(frame_info.get());
-                /*uint8_t m_sound_format;
-                    uint8_t m_sound_rate;
-                    uint8_t m_sound_size;
-                    uint8_t m_sound_type;
-                    int m_detail_type;*/
-
-                // 读取音频帧头信息(1字节)
-                if (1 != stream.readRawData(reinterpret_cast<char*>(buffer), 1))
-                    throw QString("文件结束");
-                frame_info->a_info->m_sound_format->value = (double) ((buffer[0] & 0xF0) >> 4); // 高4位
-                frame_info->a_info->m_sound_rate->value = (double) ((buffer[0] & 0x0C) >> 2);   // 3-2位
-                frame_info->a_info->m_sound_size->value = (double) ((buffer[0] & 0x02) >> 1);   // 1位
-                frame_info->a_info->m_sound_type->value = (double) (buffer[0] & 0x01);          // 0位
-
-                if (get<double>(frame_info->a_info->m_sound_format->value) == AAC) {
-                    // AAC
-                    if (1 != stream.readRawData(reinterpret_cast<char*>(buffer), 1))
-                        throw QString("文件结束");
-                    frame_info->a_info->m_detail_type->value = (double) buffer[0];
-                }
-            } break;
-            case TAG_TYPE_VIDEO: {
-                frame_info->v_info = make_unique<VideoFrameInfo>(frame_info.get());
-                /*uint8_t m_frame_type;
-                    uint8_t m_codec;
-                    int m_cts;
-                    int m_detail_type;*/
-
-                // 读取视频帧头信息(1字节)
-                if (1 != stream.readRawData(reinterpret_cast<char*>(buffer), 1))
-                    throw QString("文件结束");
-                frame_info->v_info->m_frame_type->value = (double) ((buffer[0] & 0xF0) >> 4); // 高4位
-                frame_info->v_info->m_codec->value = (double) (buffer[0] & 0x0F);             // 低4位
-
-                // 如果是AVC(H.264)需要额外读取CTS
-                if (get<double>(frame_info->v_info->m_codec->value) == AVC ||
-                    get<double>(frame_info->v_info->m_codec->value) == HEVC ||
-                    get<double>(frame_info->v_info->m_codec->value) == AV1 ||
-                    get<double>(frame_info->v_info->m_codec->value) == VVC) {
-                    if (1 != stream.readRawData(reinterpret_cast<char*>(buffer), 1))
-                        throw QString("文件结束");
-                    frame_info->v_info->m_detail_type->value = (double) buffer[0];
-
-                    if (3 != stream.readRawData(reinterpret_cast<char*>(buffer), 3))
-                        throw QString("文件结束");
-                    frame_info->v_info->m_cts->value = static_cast<double>(bigend_ctoi24(buffer));
-                }
-            } break;
-            default:
-                break;
-            }
-
-            // 读取previous_tag_size
-            frame_info->m_previous_tag_size->offset = 11 + (int) get<double>(frame_info->m_tag_size->value);
-            file.seek(frame_info->m_offset + frame_info->m_previous_tag_size->offset);
-            if (4 != stream.readRawData(reinterpret_cast<char*>(buffer), 4))
-                throw QString("文件结束");
-            frame_info->m_previous_tag_size->value = (double) bigend_ctou32(buffer);
-
-            // 读取帧的二进制数据
-            frame_info->m_bin_data.reset(new uchar[frame_info->m_previous_tag_size->offset + 4]);
-            file.seek(frame_info->m_offset);
-            stream.readRawData((char*) frame_info->m_bin_data.get(), frame_info->m_previous_tag_size->offset + 4);
-
-            frame_vec.emplace_back(frame_info);
+    // 读取tag
+    while (!stream.atEnd()) {
+        unique_ptr<FLVTag> tag_info = make_unique<FLVTag>();
+        if (!tag_info->readfromStream(stream)) {
+            break;
         }
-    } catch (QString& e) {
-        qDebug(runLog) << "读取帧列表:" << e;
+
+        tag_vec.emplace_back(std::move(tag_info));
     }
 
-    m_frameList.swap(frame_vec);
+    m_tagList.swap(tag_vec);
     return 0;
 }
 
 /**
- @class ModelFrameInfoTree
+ @class ModelTagInfoTree
 */
 
-QVariant ModelFrameInfoTree::data(const QModelIndex& index, int role) const {
+QVariant ModelTagInfoTree::data(const QModelIndex& index, int role) const {
     if (!index.isValid())
         return QVariant();
 
@@ -227,7 +150,7 @@ QVariant ModelFrameInfoTree::data(const QModelIndex& index, int role) const {
         return QSize(0, 23);
 
     if (role == Qt::DisplayRole) {
-        auto item = static_cast<TreeItem*>(index.internalPointer()); // 怎么得到internal pointer?
+        auto item = static_cast<TreeItem*>(index.internalPointer());
 
         if (index.column() == 0)
             return item->data->name;
@@ -237,23 +160,23 @@ QVariant ModelFrameInfoTree::data(const QModelIndex& index, int role) const {
     return {};
 }
 
-QModelIndex ModelFrameInfoTree::parent(const QModelIndex& index) const {
+QModelIndex ModelTagInfoTree::parent(const QModelIndex& index) const {
     if (!index.isValid())
         return {};
 
     auto childItem = static_cast<TreeItem*>(index.internalPointer());
-    if (childItem == nullptr || childItem == m_frame_info.get())
+    if (childItem == nullptr || childItem == m_tag_info.get())
         return {};
 
     auto parentItem = childItem->parentItem;
     return createIndex(parentItem->row(), 0, parentItem);
 }
 
-QModelIndex ModelFrameInfoTree::index(int row, int column, const QModelIndex& parent) const {
+QModelIndex ModelTagInfoTree::index(int row, int column, const QModelIndex& parent) const {
     if (!hasIndex(row, column, parent))
         return {};
 
-    TreeItem* parentItem = parent.isValid() ? static_cast<TreeItem*>(parent.internalPointer()) : m_frame_info.get();
+    TreeItem* parentItem = parent.isValid() ? static_cast<TreeItem*>(parent.internalPointer()) : m_tag_info.get();
     TreeItem* childItem = parentItem->child(row);
     if (childItem)
         return createIndex(row, column, childItem);
@@ -261,23 +184,23 @@ QModelIndex ModelFrameInfoTree::index(int row, int column, const QModelIndex& pa
 }
 
 /**
- @class ModelFrameBinary
+ @class ModelTagBinary
 */
 
-int ModelFrameBinary::rowCount(const QModelIndex& parent) const {
+int ModelTagBinary::rowCount(const QModelIndex& parent) const {
     return m_data.m_size / 16 + 1;
 }
 
-int ModelFrameBinary::columnCount(const QModelIndex& parent) const {
+int ModelTagBinary::columnCount(const QModelIndex& parent) const {
     return 16;
 }
 
-QVariant ModelFrameBinary::data(const QModelIndex& index, int role) const {
+QVariant ModelTagBinary::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || index.row() >= (m_data.m_size / 16 + 1) || index.column() >= 16) {
         return {};
     }
 
-    if (role != Qt::DisplayRole)
+    if (role != Qt::DisplayRole && role != Qt::EditRole)
         return {};
 
     int row = index.row();
@@ -289,7 +212,71 @@ QVariant ModelFrameBinary::data(const QModelIndex& index, int role) const {
     return {};
 }
 
-QVariant ModelFrameBinary::headerData(int section, Qt::Orientation orientation, int role) const {
+bool ModelTagBinary::setData(const QModelIndex& index, const QVariant& value, int role) {
+    if (!index.isValid() || role != Qt::EditRole)
+        return false;
+
+    int row = index.row();
+    int column = index.column();
+    int offset = row * 16 + column;
+
+    if (offset >= m_data.m_size)
+        return false;
+
+    // 解析输入的十六进制字符串
+    QString inputStr = value.toString().trimmed().toUpper();
+    bool ok = false;
+    uint8_t newValue = static_cast<uint8_t>(inputStr.toUInt(&ok, 16));
+
+    if (!ok || newValue > 0xFF) {
+        qCInfo(runLog) << QString("[flv-editing] event[invalid-input] input[%1]").arg(inputStr);
+        return false;
+    }
+
+    // 写入文件
+    if (m_filePath.isEmpty()) {
+        qCInfo(runLog) << QString("[flv-editing] event[file-not-exist]");
+        return false;
+    }
+
+    QFile file(m_filePath);
+    if (!file.open(QIODevice::ReadWrite)) {
+        qCInfo(runLog) << QString("[flv-editing] event[file-open-failed]");
+        return false;
+    }
+
+    file.seek(m_data.m_offset + offset);
+    file.write(reinterpret_cast<const char*>(&newValue), 1);
+    file.close();
+
+    qCInfo(runLog) << QString("[flv-editing] event[byte-write] offset[0x%1] new-value[0x%2]")
+                          .arg(QString::number(m_data.m_offset + offset, 16).rightJustified(8, '0'))
+                          .arg(QString::number(newValue, 16).rightJustified(2, '0').toUpper());
+
+    // 通知视图数据已改变
+    emit dataModified();
+    return true;
+}
+
+Qt::ItemFlags ModelTagBinary::flags(const QModelIndex& index) const {
+    if (!index.isValid())
+        return Qt::NoItemFlags;
+
+    int row = index.row();
+    int column = index.column();
+    int offset = row * 16 + column;
+
+    Qt::ItemFlags flags = QAbstractTableModel::flags(index);
+
+    // 只有有效数据范围内的单元格可编辑
+    if (offset < m_data.m_size) {
+        flags |= Qt::ItemIsEditable;
+    }
+
+    return flags;
+}
+
+QVariant ModelTagBinary::headerData(int section, Qt::Orientation orientation, int role) const {
     if (role != Qt::DisplayRole)
         return {};
 
@@ -302,8 +289,7 @@ QVariant ModelFrameBinary::headerData(int section, Qt::Orientation orientation, 
     if (orientation == Qt::Vertical) {
         // 根据列索引返回相应的表头数据
         if (section < (m_data.m_size / 16 + 1))
-            return QString("%1").arg(
-                QString::number((uint) (m_data.m_offset + section * 16), 16).rightJustified(8, '0'));
+            return QString("%1").arg(QString::number(m_data.m_offset + section * 16, 16).rightJustified(8, '0'));
     }
 
     return {};

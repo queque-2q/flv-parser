@@ -4,21 +4,20 @@
 
 #pragma once
 
-#include "frameinfo.h"
+#include "taginfo.h"
 #include <QAbstractItemModel>
 #include <QFile>
 using namespace std;
 
 /**
- * @class ModelFrameList
+ * @class ModelTagList
  * @brief 继承QAbstractTableModel，和tableView绑定
  */
-class ModelFrameList : public QAbstractTableModel {
+class ModelTagList : public QAbstractTableModel {
     Q_OBJECT
   public:
     // view相关
-    explicit ModelFrameList(const vector<shared_ptr<FLVFrame>>& list, QObject* parent = nullptr)
-        : QAbstractTableModel(parent), m_frameList(list) {
+    explicit ModelTagList(QObject* parent = nullptr) : QAbstractTableModel(parent) {
     }
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -26,33 +25,38 @@ class ModelFrameList : public QAbstractTableModel {
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
     // 数据相关
-    vector<shared_ptr<FLVFrame>> getFrameList() {
-        return m_frameList;
+    FLVHeader* getFlvHeader() {
+        return m_flv_header.get();
     }
+    vector<unique_ptr<FLVTag>>& getTagList() {
+        return m_tagList;
+    }
+
     int readFromFile(QFile& path);
     static const int column_size = 5;
 
     // 添加删除方法
     bool removeRow(int row, const QModelIndex& parent = QModelIndex()) {
         beginRemoveRows(parent, row, row);
-        m_frameList.erase(m_frameList.begin() + row);
+        m_tagList.erase(m_tagList.begin() + row);
         endRemoveRows();
         return true;
     }
 
   private:
-    vector<shared_ptr<FLVFrame>> m_frameList;
+    unique_ptr<FLVHeader> m_flv_header;
+    vector<unique_ptr<FLVTag>> m_tagList;
 };
 
 /**
- * @class ModelFrameInfoTree
+ * @class ModelTagInfoTree
  * @brief 继承QAbstractItemModel，和treeView绑定
  */
-class ModelFrameInfoTree : public QAbstractItemModel {
+class ModelTagInfoTree : public QAbstractItemModel {
     Q_OBJECT
   public:
-    explicit ModelFrameInfoTree(shared_ptr<TreeItem>& root, QObject* parent = nullptr)
-        : QAbstractItemModel(parent), m_frame_info(root) {
+    explicit ModelTagInfoTree(shared_ptr<TreeItem>& root, QObject* parent = nullptr)
+        : QAbstractItemModel(parent), m_tag_info(root) {
     }
 
     // 行数
@@ -61,8 +65,8 @@ class ModelFrameInfoTree : public QAbstractItemModel {
         if (parent.isValid()) {
             parentItem = static_cast<TreeItem*>(parent.internalPointer());
         } else {
-            // 如果是根节点，使用 m_frame_info
-            parentItem = m_frame_info.get();
+            // 如果是根节点，使用 m_tag_info
+            parentItem = m_tag_info.get();
         }
 
         return parentItem ? parentItem->childCount() : 0;
@@ -94,17 +98,22 @@ class ModelFrameInfoTree : public QAbstractItemModel {
     QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
 
   private:
-    shared_ptr<TreeItem> m_frame_info;
+    shared_ptr<TreeItem> m_tag_info;
 };
 
 /**
- * @class ModelFrameBinary
+ * @class ModelTagBinary
  * @brief 继承QAbstractTableModel，和tableView绑定
  */
-class ModelFrameBinary : public QAbstractTableModel {
+class ModelTagBinary : public QAbstractTableModel {
     Q_OBJECT
   public:
-    explicit ModelFrameBinary(BinaryData& data, QObject* parent = nullptr) : QAbstractTableModel(parent), m_data(data) {
+    explicit ModelTagBinary(BinaryData& data, QObject* parent = nullptr) : QAbstractTableModel(parent), m_data(data) {
+    }
+
+    // 设置文件路径（用于编辑后保存）
+    void setFilePath(const QString& filePath) {
+        m_filePath = filePath;
     }
 
     // read
@@ -113,6 +122,12 @@ class ModelFrameBinary : public QAbstractTableModel {
     QVariant data(const QModelIndex& index, int role) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
+    // 设置数据（编辑功能）
+    bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+
+    // 返回项的标志（设置可编辑）
+    Qt::ItemFlags flags(const QModelIndex& index) const override;
+
     static const int column_size = 5;
 
     // 获取数据
@@ -120,6 +135,10 @@ class ModelFrameBinary : public QAbstractTableModel {
         return m_data;
     }
 
+  signals:
+    void dataModified();
+
   private:
     BinaryData m_data;
+    QString m_filePath;
 };

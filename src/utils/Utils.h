@@ -17,3 +17,9 @@ inline int bigend_ctoi24(const unsigned char* data) {
 inline unsigned int bigend_ctou32(const unsigned char* data) {
     return *(data + 3) + (*(data + 2) << 8) + (*(data + 1) << 16) + (*(data) << 24);
 }
+
+inline void read_exception(QDataStream& stream, char* buffer, int size) {
+    if (size != stream.readRawData(buffer, size)) {
+        throw QString("eof");
+    }
+}

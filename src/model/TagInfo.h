@@ -18,7 +18,7 @@ using namespace std;
 enum TAG_TYPE {
     TAG_TYPE_AUDIO = 8,
     TAG_TYPE_VIDEO = 9,
-    TAG_TYPE_METADATA = 18
+    TAG_TYPE_SCRIPT = 18
 };
 
 enum FLV_AUDIO_CODEC {
@@ -39,13 +39,13 @@ enum FLV_VIDEO_CODEC {
 using property_variant = std::variant<double, bool, string>;
 struct PropertyItem {
     QString name;
-    uint64_t offset = 0; // 偏移量
-    uint32_t size = 0;   // 大小
+    int64_t offset = 0; // 偏移量
+    uint32_t size = 0;  // 大小
     property_variant value;
 
     function<QString(PropertyItem&)> toStringFunc = [](PropertyItem& it) -> QString {
         if (auto pd = std::get_if<double>(&it.value))
-            return QString("%1").arg(*pd);
+            return QString("%1").arg(*pd, 0, 'g', 10);
         if (auto pb = std::get_if<bool>(&it.value))
             return *pb ? "true" : "false";
         if (auto ps = std::get_if<std::string>(&it.value))
@@ -53,12 +53,12 @@ struct PropertyItem {
         return QString();
     };
 
-    PropertyItem(const QString& n, uint64_t off, uint32_t s, const property_variant& v)
+    PropertyItem(const QString& n, int64_t off, uint32_t s, const property_variant& v)
         : name(n), offset(off), size(s), value(v) {
     }
 
     PropertyItem(const QString& n,
-                 uint64_t off,
+                 int64_t off,
                  uint32_t s,
                  const property_variant& v,
                  function<QString(PropertyItem&)> func)
@@ -75,7 +75,6 @@ struct TreeItem {
     }
 
     ~TreeItem() {
-        // qDeleteAll(childItems); // owner
         for (auto& child : childItems) {
             delete child;
         }
@@ -145,7 +144,7 @@ double parseAMFNumber(QDataStream& stream);
 bool parseAMFBoolean(QDataStream& stream);
 
 /**
- * @class DataFrameInfo
+ * @class DataTagInfo
  * @brief 元数据帧详细字段
  */
 struct MetadataItem {
@@ -155,48 +154,52 @@ struct MetadataItem {
     property_variant value; // 通用值
     vector<MetadataItem> obj_value;
 
+    int64_t offset = 0; // 偏移量
+    uint32_t size = 0;  // 大小
+
     MetadataItem() = default;
 
-    MetadataItem(char t, const QString& k) : type(t), key(k) {
+    MetadataItem(char t, const QString& k, int64_t off = 0, uint32_t s = 0) : type(t), key(k), offset(off), size(s) {
     }
     TreeItem* toTreeObj();
 };
 
 /**
- * @class FLVFrame
+ * @class FLVTag
  * @brief flv帧信息，包括flv帧头和帧数据信息
  */
-struct FLVFrame;
+struct FLVTag;
 
 /**
- * @class DataFrameInfo
+ * @class DataTagInfo
  * @brief 元数据帧详细字段
  */
-struct DataFrameInfo {
+struct DataTagInfo {
     MetadataItem m_metadata_values;
+    FLVTag* m_tag_ptr = nullptr; // 指向所属的FLVTag
 
-    FLVFrame* m_frame_ptr = nullptr; // 指向所属的FLVFrame
+    DataTagInfo(FLVTag* m_tag_ptr) : m_tag_ptr(m_tag_ptr) {
+    }
 
-    DataFrameInfo(FLVFrame* m_frame_ptr) : m_frame_ptr(m_frame_ptr) {}
-    void ReadFromStream(QDataStream& stream);
-    void parseAMFObject(QDataStream& stream, MetadataItem& item, bool isECMAArray = false);
+    bool ReadFromStream(QDataStream& stream);
+    void parseAMFObjectOrArray(QDataStream& stream, MetadataItem& item);
     TreeItem* toTreeObj();
 };
 
-inline const char* getFrameType(uint8_t frame_type) {
-    switch (frame_type) {
+inline const char* getTagType(uint8_t tag_type) {
+    switch (tag_type) {
     case 1:
-        return "keyframe";
+        return "keytag";
     case 2:
-        return "inter frame";
+        return "inter tag";
     case 3:
-        return "disposable inter frame";
+        return "disposable inter tag";
     case 4:
-        return "generated keyframe";
+        return "generated keytag";
     case 5:
-        return "video info/command frame";
+        return "video info/command tag";
     default:
-        return "unknown frame type";
+        return "unknown tag type";
     }
 }
 
@@ -286,29 +289,29 @@ inline const char* getSoundRate(uint8_t sound_rate) {
 }
 
 /**
- * @class VideoFrameInfo
+ * @class VideoTagInfo
  * @brief 视频帧详细字段
  */
-struct VideoFrameInfo {
+struct VideoTagInfo {
   public:
     // 字段
-    shared_ptr<PropertyItem> m_frame_type;
+    shared_ptr<PropertyItem> m_tag_type;
     shared_ptr<PropertyItem> m_codec;
     shared_ptr<PropertyItem> m_detail_type;
     shared_ptr<PropertyItem> m_cts;
 
-    // 指向所属的FLVFrame，便于修改
-    FLVFrame* m_frame_ptr = nullptr;
+    // 指向所属的FLVTag，便于修改
+    FLVTag* m_tag_ptr = nullptr;
 
-    VideoFrameInfo(FLVFrame* m_frame_ptr);
+    VideoTagInfo(FLVTag* m_tag_ptr);
     TreeItem* toTreeObj();
 };
 
 /**
- * @class AudioFrameInfo
+ * @class AudioTagInfo
  * @brief 音频帧详细字段
  */
-struct AudioFrameInfo {
+struct AudioTagInfo {
   public:
     // 字段
     shared_ptr<PropertyItem> m_sound_format;
@@ -317,10 +320,10 @@ struct AudioFrameInfo {
     shared_ptr<PropertyItem> m_sound_type;
     shared_ptr<PropertyItem> m_detail_type;
 
-    // 指向所属的FLVFrame，便于修改
-    FLVFrame* m_frame_ptr = nullptr;
+    // 指向所属的FLVTag，便于修改
+    FLVTag* m_tag_ptr = nullptr;
 
-    AudioFrameInfo(FLVFrame* m_frame_ptr);
+    AudioTagInfo(FLVTag* m_tag_ptr);
     TreeItem* toTreeObj();
 };
 
@@ -335,13 +338,14 @@ struct BinaryData {
     shared_ptr<uchar[]> m_bin_data;
     uint64_t m_offset = 0;
     uint32_t m_size = 0;
+
 };
 
 /**
- * @class FLVFrame
+ * @class FLVTag
  * @brief flv帧信息，包括flv帧头和帧数据信息
  */
-struct FLVFrame : public BinaryData {
+struct FLVTag : public BinaryData {
   public:
     shared_ptr<PropertyItem> m_tag_type;
     shared_ptr<PropertyItem> m_tag_size;
@@ -350,22 +354,22 @@ struct FLVFrame : public BinaryData {
     shared_ptr<PropertyItem> m_previous_tag_size;
 
     // 帧信息
-    unique_ptr<DataFrameInfo> metadata_info;
-    unique_ptr<VideoFrameInfo> v_info;
-    unique_ptr<AudioFrameInfo> a_info;
+    unique_ptr<DataTagInfo> metadata_info;
+    unique_ptr<VideoTagInfo> v_info;
+    unique_ptr<AudioTagInfo> a_info;
 
     // 树状信息指针
     shared_ptr<TreeItem> m_info_tree;
 
-    FLVFrame() {
+    FLVTag() {
         m_tag_type.reset(new PropertyItem("tag_type", 0, 1, 0.0));
-        m_tag_size.reset(new PropertyItem("tag_size", 1, 3, 0.0));
-        m_timestamp.reset(new PropertyItem("timestamp", 4, 4, 0.0));
-        m_stream_id.reset(new PropertyItem("stream_id", 8, 3, 0.0));
+        m_tag_size.reset(new PropertyItem("tag_size", -1, 3, 0.0));
+        m_timestamp.reset(new PropertyItem("timestamp", -4, 4, 0.0));
+        m_stream_id.reset(new PropertyItem("stream_id", -8, 3, 0.0));
         m_previous_tag_size.reset(new PropertyItem("previous_tag_size", 0, 4, 0.0));
 
         static const QMap<uint8_t, const char*> tagTypeMap = {
-            {TAG_TYPE_AUDIO, "audio"}, {TAG_TYPE_VIDEO, "video"}, {TAG_TYPE_METADATA, "metadata"}};
+            {TAG_TYPE_AUDIO, "audio"}, {TAG_TYPE_VIDEO, "video"}, {TAG_TYPE_SCRIPT, "script"}};
 
         m_tag_type->toStringFunc = [](PropertyItem& item) {
             if (auto pd = std::get_if<double>(&item.value))
@@ -374,5 +378,47 @@ struct FLVFrame : public BinaryData {
         };
     }
 
+    bool readfromStream(QDataStream& stream);
+    shared_ptr<TreeItem>& getTreeInfo();
+};
+
+/**
+ * @class FLVHeader
+ * @brief flv文件头结构体
+ */
+struct FLVHeader : public BinaryData {
+    shared_ptr<PropertyItem> m_signature;
+    shared_ptr<PropertyItem> m_version;
+    shared_ptr<PropertyItem> m_type_flags;
+    shared_ptr<PropertyItem> m_data_offset;
+    shared_ptr<PropertyItem> m_previous_tag_size;
+
+    // 树状信息指针
+    shared_ptr<TreeItem> m_info_tree;
+
+    FLVHeader() {
+        m_signature.reset(new PropertyItem("signature", 0, 3, string()));
+        m_version.reset(new PropertyItem("version", -3, 1, 0.0));
+        m_type_flags.reset(new PropertyItem("type_flags", -4, 1, 0.0));
+        m_data_offset.reset(new PropertyItem("data_offset", -5, 4, 0.0));
+        m_previous_tag_size.reset(new PropertyItem("previous_tag_size", -9, 4, 0.0));
+
+        m_type_flags->toStringFunc = [](PropertyItem& item) {
+            if (auto ps = std::get_if<double>(&item.value)) {
+                int flags = static_cast<int>(*ps);
+                if ((flags & 0x05) == 0x05)
+                    return QString("has audio and video (%1)").arg(*ps);
+                else if ((flags & 0x04) == 0x04)
+                    return QString("has video (%1)").arg(*ps);
+                else if (flags & 0x01)
+                    return QString("has audio (%1)").arg(*ps);
+                else
+                    return QString("%1").arg(*ps);
+            }
+            return QString();
+        };
+    }
+
+    bool readfromStream(QDataStream& stream);
     shared_ptr<TreeItem>& getTreeInfo();
 };

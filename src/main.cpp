@@ -13,7 +13,11 @@ int main(int argc, char* argv[]) {
     a.setWindowIcon(QIcon(":/app.ico"));
     a.setStyle(QStyleFactory::create("Fusion"));
 
+    // log
+    initLog();
+    qSetMessagePattern("[%{type}] %{message}");
     qInstallMessageHandler(customMessageHandler);
+
     MainWindow w;
     w.show();
     return a.exec();
