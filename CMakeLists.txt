@@ -3,7 +3,7 @@
 # ----------------------------------------
 # Project
 # ----------------------------------------
-project(flv-parser VERSION 1.0.3 LANGUAGES CXX)
+project(flv-parser VERSION 1.0.4 LANGUAGES CXX)
 
 # Qt build helpers
 set(CMAKE_AUTOUIC ON)
