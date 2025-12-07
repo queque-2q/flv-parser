@@ -2,20 +2,26 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include <windows.h>
-#ifdef byte
-#undef byte // 强制移除 byte 类型别名
-#endif
-
 #include "DeleteStrategy.h"
 #include "Log.h"
 #include "Utils.h"
 #include <QFile>
 #include <QMessageBox>
+#include <cstdint>
 
-bool StreamDeleteStrategy::deleteTag(const QString& filePath,
-                                       int rowIndex,
-                                       const vector<unique_ptr<FLVTag>>& tagList) {
+// Windows API 相关头文件 - 必须在 Qt 头文件之后包含
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#ifdef byte
+#undef byte
+#endif
+
+bool StreamDeleteStrategy::deleteTag(const QString& filePath, int rowIndex, const vector<unique_ptr<FLVTag>>& tagList) {
     QString tempFileName = filePath + "_temp";
 
     try {
@@ -47,9 +53,9 @@ bool StreamDeleteStrategy::deleteTag(const QString& filePath,
 }
 
 bool StreamDeleteStrategy::copyTagsToTemp(const QString& sourcePath,
-                                            const QString& tempPath,
-                                            int rowIndex,
-                                            const vector<unique_ptr<FLVTag>>& tagList) {
+                                          const QString& tempPath,
+                                          int rowIndex,
+                                          const vector<unique_ptr<FLVTag>>& tagList) {
     QFile sourceFile(sourcePath);
     QFile tempFile(tempPath);
 
@@ -81,9 +87,7 @@ bool StreamDeleteStrategy::copyTagsToTemp(const QString& sourcePath,
     return true;
 }
 
-bool MMapDeleteStrategy::deleteTag(const QString& filePath,
-                                     int rowIndex,
-                                     const vector<unique_ptr<FLVTag>>& tagList) {
+bool MMapDeleteStrategy::deleteTag(const QString& filePath, int rowIndex, const vector<unique_ptr<FLVTag>>& tagList) {
 
     bool result = deleteTagInMemory(filePath, rowIndex, tagList);
     if (result) {
@@ -97,8 +101,8 @@ bool MMapDeleteStrategy::deleteTag(const QString& filePath,
 }
 
 bool MMapDeleteStrategy::deleteTagInMemory(const QString& filePath,
-                                             int rowIndex,
-                                             const vector<unique_ptr<FLVTag>>& tagList) {
+                                           int rowIndex,
+                                           const vector<unique_ptr<FLVTag>>& tagList) {
     HANDLE hFile = CreateFileW((LPCWSTR) filePath.utf16(),
                                GENERIC_READ | GENERIC_WRITE,
                                0,
@@ -124,27 +128,20 @@ bool MMapDeleteStrategy::deleteTagInMemory(const QString& filePath,
         return false;
     }
 
-    try {
-        // 计算需要移动的数据大小和位置
-        auto& tags = tagList;
-        int64_t startPos = tags[rowIndex]->m_offset;
-        int64_t endPos = tags[rowIndex]->m_offset + tags[rowIndex]->m_size;
-        int64_t moveSize = GetFileSize(hFile, nullptr) - endPos;
+    // 计算需要移动的数据大小和位置
+    auto& tags = tagList;
+    int64_t startPos = tags[rowIndex]->m_offset;
+    int64_t endPos = tags[rowIndex]->m_offset + tags[rowIndex]->m_size;
+    int64_t moveSize = GetFileSize(hFile, nullptr) - endPos;
 
-        // 移动数据
-        if (moveSize > 0) {
-            memmove((char*) pView + startPos, (char*) pView + endPos, moveSize);
-        }
-
-        // 设置新的文件大小
-        SetFilePointer(hFile, startPos + moveSize, nullptr, FILE_BEGIN);
-        SetEndOfFile(hFile);
-    } catch (...) {
-        UnmapViewOfFile(pView);
-        CloseHandle(hMapping);
-        CloseHandle(hFile);
-        return false;
+    // 移动数据
+    if (moveSize > 0) {
+        memmove((char*) pView + startPos, (char*) pView + endPos, moveSize);
     }
+
+    // 设置新的文件大小
+    SetFilePointer(hFile, startPos + moveSize, nullptr, FILE_BEGIN);
+    SetEndOfFile(hFile);
 
     UnmapViewOfFile(pView);
     CloseHandle(hMapping);

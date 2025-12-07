@@ -12,7 +12,7 @@
 
 using namespace std;
 
-#define VERSION_STRING "1.0.3"
+#define VERSION_STRING "1.0.4"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
