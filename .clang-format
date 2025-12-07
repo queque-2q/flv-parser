@@ -32,5 +32,4 @@ ReflowComments: true
 MaxEmptyLinesToKeep: 1
 
 # 其他增强可读性配置
-# AlignConsecutiveAssignments: true
 AlignTrailingComments: true

@@ -12,11 +12,18 @@
 
 using namespace std;
 
+#define VERSION_STRING "1.0.3"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
 QT_END_NAMESPACE
+
+class QStackedWidget;
+class LogView;
+class TagView;
+class DocView;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -28,28 +35,27 @@ class MainWindow : public QMainWindow {
   private slots:
     void on_actionopen_triggered();
 
-    void on_actionsave_triggered();
-
-    void on_actionsave_as_triggered();
-
-    void on_actionhelp_triggered();
-
     void on_actionabout_triggered();
 
-    void onFrameSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
-    void onFieldSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
+    void on_actionViewLog_triggered();
+
+    void on_actionViewMain_triggered();
+
+    void on_actionViewDoc_triggered();
+
+    void handleTagDelete(int row);
 
   private:
-    void setupContextMenu();
-    void handleDeleteFrame();
     void loadFile();
+    void setupViews();
 
   private:
     Ui::MainWindow* ui;
     QString m_currentFile;
-    unique_ptr<ModelFrameList> m_frame_table_model;
-    unique_ptr<ModelFrameInfoTree> m_frame_info_tree;
-    unique_ptr<ModelFrameBinary> m_frame_data;
-    QMenu* contextMenu;
-    QAction* deleteAction;
+
+    // 视图管理
+    QStackedWidget* m_stackedWidget;
+    TagView* m_tagView;
+    LogView* m_logView;
+    DocView* m_docView;
 };

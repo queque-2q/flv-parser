@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+            font-size: 22px;
+        }
+
+        h3 {
+            color: #555;
+            margin-top: 18px;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0 25px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            border: none;
+            padding: 0;
+            font-size: 20px;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 8px 0;
+        }
+
+        .toc>ul>li {
+            margin: 6px 0;
+        }
+
+        .toc ul ul {
+            padding-left: 20px;
+            margin: 4px 0;
+        }
+
+        .toc ul ul li {
+            margin: 4px 0;
+        }
+
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            padding: 2px 0;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+            color: #2980b9;
+        }
+
+        p {
+            margin: 8px 0;
+        }
+
+        ul,
+        ol {
+            margin: 8px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 4px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            color: #e74c3c;
+            font-size: 0.9em;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px 12px;
+            margin: 12px 0;
+            border-radius: 3px;
+        }
+
+        .warning ul {
+            margin: 6px 0;
+        }
+
+        .note {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 10px 12px;
+            margin: 12px 0;
+            border-radius: 3px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .emoji {
+            font-size: 1.1em;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 20px 0;
+        }
+
+        strong {
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>FLV Parser 用户操作指南</h1>
+
+    <div class="toc">
+        <h2>目录</h2>
+        <ul>
+            <li><a href="#overview">概述</a></li>
+            <li><a href="#feature_parse">FLV解析功能</a>
+                <ul>
+                    <li><a href="#open-file">打开文件</a></li>
+                    <li><a href="#view-tag">查看tag信息</a></li>
+                </ul>
+            </li>
+            <li><a href="#feature_edit">FLV编辑功能</a>
+                <ul>
+                    <li><a href="#delete-tag">删除FLV Tag</a></li>
+                    <li><a href="#modify-byte">修改二进制字节</a></li>
+                </ul>
+            </li>
+            <li><a href="#view-log">查看日志</a></li>
+            <li><a href="#support">技术支持</a></li>
+        </ul>
+    </div>
+
+    <hr>
+
+    <h2 id="overview">概述</h2>
+    <p>FLV Parser 是一个用于解析和编辑 FLV 视频文件的工具，支持查看tag详情、删除tag以及修改二进制数据。</p>
+
+    <hr>
+
+    <h2 id="feature_parse">FLV解析功能</h2>
+
+    <h3 id="open-file">打开文件</h3>
+    <ul>
+        <li>点击工具栏的 <strong>打开</strong> 按钮，或使用菜单 <strong>文件 → open</strong></li>
+        <li>选择要解析的 FLV 文件</li>
+        <li>文件解析完成后，左侧会显示所有tag的列表</li>
+    </ul>
+
+    <h3 id="view-tag">查看tag信息</h3>
+    <ul>
+        <li>在左侧 <strong>tag列表</strong> 中点击任意一行，右上方 <strong>tag信息树</strong> 会显示该tag的详细字段结构，右下方 <strong>二进制数据表</strong>
+            会以十六进制格式显示tag的原始字节</li>
+        <li>在右上方 <strong>tag信息树</strong> 中点击某个字段，二进制数据表会自动高亮对应的字节范围</li>
+    </ul>
+
+    <hr>
+
+    <h2 id="feature_edit">FLV编辑功能</h2>
+
+    <div class="warning">
+        <strong>⚠️ 注意事项：此操作直接修改源文件，无法撤销！建议操作前备份原文件</strong>
+    </div>
+
+    <h3 id="delete-tag">删除FLV Tag</h3>
+    <ol>
+        <li>在左侧 <strong>tag列表</strong> 中选中要删除的tag</li>
+        <li><strong>右键点击</strong> 该tag，在弹出的菜单中选择 <strong>删除tag</strong></li>
+        <li>在确认对话框中点击 <strong>Yes</strong></li>
+        <li>文件会立即被修改，并自动重新加载</li>
+    </ol>
+
+    <h3 id="modify-byte">修改二进制字节</h3>
+    <ol>
+        <li>在右上方 <strong>tag信息树</strong> 中点击某个字段，二进制数据表会自动高亮对应的字节范围</li>
+        <li>在右下方 <strong>二进制数据表</strong> 中，<strong>双击</strong> 要修改的单元格</li>
+        <li>输入新的十六进制值（范围：00-FF，不区分大小写）</li>
+        <li>按 <strong>Enter</strong> 键确认</li>
+        <li>确认后，文件会立即被修改并自动重新加载所有视图</li>
+    </ol>
+
+    <hr>
+
+    <h2 id="view-log">查看日志</h2>
+    <ul>
+        <li>使用菜单 <strong>查看 → 查看日志</strong> 或点击工具栏的日志图标</li>
+        <li>可以按日志级别筛选（全部、Debug、Info、Warning）</li>
+    </ul>
+
+    <hr>
+
+    <h2 id="support">技术支持</h2>
+    <p>如有问题，请参考项目文档或提交 Issue。</p>
+    <p>感谢使用 FLV Parser！</p>
+    <br>
+
+</body>
+
+</html>

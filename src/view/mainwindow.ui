@@ -19,124 +19,14 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="6,5">
-      <property name="spacing">
-       <number>6</number>
-      </property>
-      <property name="sizeConstraint">
-       <enum>QLayout::SizeConstraint::SetNoConstraint</enum>
-      </property>
-      <item>
-       <widget class="QTableView" name="frameTableView">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="contextMenuPolicy">
-         <enum>Qt::ContextMenuPolicy::ActionsContextMenu</enum>
-        </property>
-        <property name="selectionMode">
-         <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
-        </property>
-        <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-        <property name="cornerButtonEnabled">
-         <bool>true</bool>
-        </property>
-        <attribute name="verticalHeaderDefaultSectionSize">
-         <number>28</number>
-        </attribute>
-       </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
-        <property name="sizeConstraint">
-         <enum>QLayout::SizeConstraint::SetNoConstraint</enum>
-        </property>
-        <item>
-         <widget class="QTreeView" name="frameInfoTree">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="midLineWidth">
-           <number>1</number>
-          </property>
-          <property name="alternatingRowColors">
-           <bool>true</bool>
-          </property>
-          <property name="indentation">
-           <number>20</number>
-          </property>
-          <property name="rootIsDecorated">
-           <bool>true</bool>
-          </property>
-          <attribute name="headerVisible">
-           <bool>true</bool>
-          </attribute>
-          <attribute name="headerCascadingSectionResizes">
-           <bool>true</bool>
-          </attribute>
-          <attribute name="headerDefaultSectionSize">
-           <number>200</number>
-          </attribute>
-         </widget>
-        </item>
-        <item>
-         <widget class="QTableView" name="frameRawContent">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="sizeAdjustPolicy">
-           <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
-          </property>
-          <property name="alternatingRowColors">
-           <bool>true</bool>
-          </property>
-          <property name="selectionMode">
-           <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
-          </property>
-          <attribute name="horizontalHeaderMinimumSectionSize">
-           <number>24</number>
-          </attribute>
-          <attribute name="horizontalHeaderDefaultSectionSize">
-           <number>24</number>
-          </attribute>
-          <attribute name="verticalHeaderDefaultSectionSize">
-           <number>23</number>
-          </attribute>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </item>
-   </layout>
-  </widget>
+  <widget class="QWidget" name="centralwidget"/>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
      <width>1070</width>
-     <height>33</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -144,17 +34,23 @@
      <string>文件</string>
     </property>
     <addaction name="actionopen"/>
-    <addaction name="actionsave"/>
-    <addaction name="actionsave_as"/>
+   </widget>
+   <widget class="QMenu" name="menu_view">
+    <property name="title">
+     <string>查看</string>
+    </property>
+    <addaction name="actionViewMain"/>
+    <addaction name="actionViewLog"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
      <string>帮助</string>
     </property>
-    <addaction name="actionhelp"/>
+    <addaction name="actionViewDoc"/>
     <addaction name="actionabout"/>
    </widget>
    <addaction name="menu"/>
+   <addaction name="menu_view"/>
    <addaction name="menu_2"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -169,8 +65,8 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionopen"/>
-   <addaction name="actionsave"/>
-   <addaction name="actionsave_as"/>
+   <addaction name="actionViewMain"/>
+   <addaction name="actionViewLog"/>
   </widget>
   <action name="actionopen">
    <property name="icon">
@@ -180,36 +76,36 @@
     <string>open</string>
    </property>
   </action>
-  <action name="actionsave">
-   <property name="icon">
-    <iconset theme="QIcon::ThemeIcon::DocumentSave"/>
-   </property>
-   <property name="text">
-    <string>save</string>
-   </property>
-  </action>
-  <action name="actionsave_as">
-   <property name="icon">
-    <iconset theme="QIcon::ThemeIcon::DocumentSaveAs"/>
-   </property>
-   <property name="text">
-    <string>save as</string>
-   </property>
-  </action>
-  <action name="actionhelp">
-   <property name="icon">
-    <iconset theme="QIcon::ThemeIcon::HelpFaq"/>
-   </property>
-   <property name="text">
-    <string>help</string>
-   </property>
-  </action>
   <action name="actionabout">
    <property name="icon">
     <iconset theme="QIcon::ThemeIcon::HelpAbout"/>
    </property>
    <property name="text">
     <string>about</string>
+   </property>
+  </action>
+  <action name="actionViewLog">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::FormatJustifyLeft"/>
+   </property>
+   <property name="text">
+    <string>查看日志</string>
+   </property>
+  </action>
+  <action name="actionViewMain">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::GoHome"/>
+   </property>
+   <property name="text">
+    <string>返回主界面</string>
+   </property>
+  </action>
+  <action name="actionViewDoc">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentProperties"/>
+   </property>
+   <property name="text">
+    <string>操作指南</string>
    </property>
   </action>
  </widget>

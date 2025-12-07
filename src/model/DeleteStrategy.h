@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "frameinfo.h"
+#include "taginfo.h"
 #include <QFile>
 #include <QString>
 #include <memory>
@@ -13,51 +13,51 @@
 using namespace std;
 
 /**
- * @class FrameDeleteStrategy
+ * @class TagDeleteStrategy
  * @brief 抽象基类，定义删除帧的策略接口
  */
-class FrameDeleteStrategy {
+class TagDeleteStrategy {
   public:
-    virtual ~FrameDeleteStrategy() = default;
-    virtual bool deleteFrame(const QString& filePath, int rowIndex, const vector<shared_ptr<FLVFrame>>& frameList) = 0;
+    virtual ~TagDeleteStrategy() = default;
+    virtual bool deleteTag(const QString& filePath, int rowIndex, const vector<unique_ptr<FLVTag>>& tagList) = 0;
 };
 
 /**
  * @class StreamDeleteStrategy
  * @brief 流式删除策略，适用于小文件的删除操作
  */
-class StreamDeleteStrategy : public FrameDeleteStrategy {
+class StreamDeleteStrategy : public TagDeleteStrategy {
   public:
     ~StreamDeleteStrategy() override = default;
-    bool deleteFrame(const QString& filePath, int rowIndex, const vector<shared_ptr<FLVFrame>>& frameList) override;
+    bool deleteTag(const QString& filePath, int rowIndex, const vector<unique_ptr<FLVTag>>& tagList) override;
 
   private:
-    bool copyFramesToTemp(const QString& sourcePath,
+    bool copyTagsToTemp(const QString& sourcePath,
                           const QString& tempPath,
                           int rowIndex,
-                          const vector<shared_ptr<FLVFrame>>& frameList);
+                          const vector<unique_ptr<FLVTag>>& tagList);
 };
 
 /**
  * @class MMapDeleteStrategy
  * @brief 内存映射删除策略，适用于大文件的删除操作
  */
-class MMapDeleteStrategy : public FrameDeleteStrategy {
+class MMapDeleteStrategy : public TagDeleteStrategy {
   public:
     ~MMapDeleteStrategy() override = default;
-    bool deleteFrame(const QString& filePath, int rowIndex, const vector<shared_ptr<FLVFrame>>& frameList) override;
+    bool deleteTag(const QString& filePath, int rowIndex, const vector<unique_ptr<FLVTag>>& tagList) override;
 
   private:
-    bool deleteFrameInMemory(const QString& filePath, int rowIndex, const vector<shared_ptr<FLVFrame>>& frameList);
+    bool deleteTagInMemory(const QString& filePath, int rowIndex, const vector<unique_ptr<FLVTag>>& tagList);
 };
 
 /**
- * @class FrameDeleteStrategyFactory
+ * @class TagDeleteStrategyFactory
  * @brief 工厂类，根据文件大小选择删除策略
  */
-class FrameDeleteStrategyFactory {
+class TagDeleteStrategyFactory {
   public:
-    static unique_ptr<FrameDeleteStrategy> createStrategy(const QString& filePath) {
+    static unique_ptr<TagDeleteStrategy> createStrategy(const QString& filePath) {
         QFile file(filePath);
         if (file.size() < 10 * 1024 * 1024) { // 10MB
             return make_unique<StreamDeleteStrategy>();

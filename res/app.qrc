@@ -2,5 +2,6 @@
 <RCC>
   <qresource prefix="/">
     <file alias="app.ico">windows/app.ico</file>
+    <file alias="res/user_guide.html">user_guide.html</file>
   </qresource>
 </RCC>
