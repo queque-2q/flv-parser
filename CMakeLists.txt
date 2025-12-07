@@ -16,8 +16,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ----------------------------------------
 # Dependencies (Qt5/Qt6 Widgets)
 # ----------------------------------------
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+# Try Qt6 first, fallback to Qt5 if not found
+find_package(Qt6 COMPONENTS Widgets QUIET)
+if (NOT Qt6_FOUND)
+    find_package(Qt5 COMPONENTS Widgets REQUIRED)
+    set(QT_VERSION_MAJOR 5)
+else()
+    set(QT_VERSION_MAJOR 6)
+endif()
 
 # ----------------------------------------
 # Sources

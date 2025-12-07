@@ -85,7 +85,7 @@ void DataTagInfo::parseAMFObjectOrArray(QDataStream& stream, MetadataItem& item)
 
             double value = parseAMFNumber(stream);
             item.obj_value.emplace_back(
-                MetadataItem{property_value, property_name, startPos, stream.device()->pos() - startPos});
+                MetadataItem{property_value, property_name, startPos, static_cast<uint32_t>(stream.device()->pos() - startPos)});
             item.obj_value.back().value = value;
             break;
         }
@@ -96,7 +96,7 @@ void DataTagInfo::parseAMFObjectOrArray(QDataStream& stream, MetadataItem& item)
 
             bool value = parseAMFBoolean(stream);
             item.obj_value.emplace_back(
-                MetadataItem{property_value, property_name, startPos, stream.device()->pos() - startPos});
+                MetadataItem{property_value, property_name, startPos, static_cast<uint32_t>(stream.device()->pos() - startPos)});
             item.obj_value.back().value = value;
             break;
         }
@@ -107,7 +107,7 @@ void DataTagInfo::parseAMFObjectOrArray(QDataStream& stream, MetadataItem& item)
 
             QString value = parseAMFString(stream);
             item.obj_value.emplace_back(
-                MetadataItem{property_value, property_name, startPos, stream.device()->pos() - startPos});
+                MetadataItem{property_value, property_name, startPos, static_cast<uint32_t>(stream.device()->pos() - startPos)});
             item.obj_value.back().value = value.toStdString();
             break;
         }
